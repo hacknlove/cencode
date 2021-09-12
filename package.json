@@ -1,0 +1,17 @@
+{
+  "name": "cencode",
+  "version": "1.0.0",
+  "description": "best url friendly serializer",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-plugin-jest": "^24.4.0",
+    "jest": "^27.1.1"
+  }
+}
