@@ -326,8 +326,19 @@ exports.verify = function verify (x, cb) {
   const [signature, serializedData] = decode(x)
   const verification = cb(signature, serializedData)
 
-  if (verification.then) {
-    return verification.then(() => main(serializedData)) 
+  if (!verification) {
+    throw new Error('Invalid signature')
+  }
+
+
+  if (verification instanceof Promise) {
+    return verification
+      .then((v) => {
+        if (!v) {
+          throw new Error('Invalid signature')
+        }
+        return main(serializedData)
+      })
   }
 
   return main(serializedData)

@@ -34,7 +34,7 @@ const { sign, verify } = require('./')
 const kissmyhash = require('kissmyhash')
 
 const signit = (data) => kissmyhash([data, 'SALT'])
-const verifyit = (data, signature) => kissmyhash(data, 'SALT') === signature ? data : false 
+const verifyit = (signature, data) => kissmyhash(data, 'SALT') === signature ? data : false 
 
 const signed = sign(['foo', { bar: 42 }], signit)
 

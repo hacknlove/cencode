@@ -73,7 +73,7 @@ describe('cencode', () => {
   it('signs and verifies', () => {
     const original = { foo: ['bar', 42] }
     const signed = sign(original, x => x.length)
-    const verification = verify(signed, (data, signature) => data.length === signature ? data : false)
+    const verification = verify(signed, (signature, data) => data.length === signature ? data : false)
 
     expect(verification).toEqual(original)
   })
