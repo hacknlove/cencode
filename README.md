@@ -1,6 +1,7 @@
 # cencode
 
 ## Quick howto
+
 ```
 const { cencode, decencode } = require('cencode')
 
@@ -34,11 +35,12 @@ const { sign, verify } = require('./')
 const kissmyhash = require('kissmyhash')
 
 const signit = (data) => kissmyhash([data, 'SALT'])
-const verifyit = (signature, data) => kissmyhash(data, 'SALT') === signature ? data : false 
+const verifyit = (signature, data) => kissmyhash(data, 'SALT') === signature ? data : false
 
 const signed = sign(['foo', { bar: 42 }], signit)
 
 const original = verify(signed, verifyit)
 // -> ['foo', { bar: 42 }]
 ```
+
 # cencode

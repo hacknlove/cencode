@@ -4,14 +4,16 @@
   "description": "best url friendly serializer",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "lint": "eslint ."
+    "test": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "eslint": "^7.32.0",
-    "eslint-plugin-jest": "^24.4.0",
-    "jest": "^27.1.1"
+    "eslint": "latest",
+    "eslint-plugin-vitest": "latest",
+    "vitest": "latest",
+    "prettier": "latest"
   }
 }
