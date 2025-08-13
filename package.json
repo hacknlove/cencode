@@ -1,6 +1,6 @@
 {
   "name": "cencode",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "best url friendly serializer",
   "main": "index.js",
   "scripts": {
