@@ -60,6 +60,29 @@ const mapHexDecode = {
   e: 'e',
   f: 'f',
 };
+const integerRegexp = /^([a-p]*[A-P])(.*)$/;
+const floatRegexp = /^([g-p]*[G-P])([g-p]*[G-P])(.*)$/;
+
+const UNDEFINED = 'U';
+const BOOLEAN_FALSE = '0';
+const BOOLEAN_TRUE = '1';
+const ARRAY = 'V';
+const NULL = 'u';
+const BUFFER = 'R';
+const DATE = 'Z';
+const FLOAT_NEGATIVE = 't';
+const FLOAT_POSITIVE = 'T';
+const INFINITY = 'y';
+const NEGATIVE_INFINITY = 'Y';
+const INTEGER_NEGATIVE = 'x';
+const INTEGER_POSITIVE = 'X';
+const SET = 's';
+const MAP = 'S';
+const OBJECT = 'v';
+const PLUGIN = 'z';
+
+const END_SEPARATOR = '.';
+const NAN = 'n';
 
 const pluginsEncode = [];
 const pluginsDecode = {};
@@ -86,61 +109,59 @@ function encodeString(x) {
 }
 function encodeNumber(x) {
   if (Number.isInteger(x)) {
-    return (x < 0 ? 'X' : 'x') + encodeInteger(x);
+    return (x < 0 ? INTEGER_NEGATIVE : INTEGER_POSITIVE) + encodeInteger(x);
   }
   if (Number.isFinite(x)) {
-    return (x < 0 ? 'Q' : 'q') + encodeFloat(x);
+    return (x < 0 ? FLOAT_NEGATIVE : FLOAT_POSITIVE) + encodeFloat(x);
   }
   if (Number.isNaN(x)) {
-    return '2';
+    return NAN;
   }
   return x < 0
-    ? '3' // -Infinity
-    : '4'; // +Infinity
+    ? NEGATIVE_INFINITY // -Infinity
+    : INFINITY; // +Infinity
 }
 
 function encodeBoolean(x) {
-  return x
-    ? '1' // true
-    : '0'; // false
+  return x ? BOOLEAN_TRUE : BOOLEAN_FALSE;
 }
 
 function encodeUndefined() {
-  return '5';
+  return UNDEFINED;
 }
 
 function encodeObject(x) {
   if (Array.isArray(x)) {
-    return '_' + x.map(encode).join('') + '.';
+    return ARRAY + x.map(encode).join('') + END_SEPARATOR;
   }
 
   if (x === null) {
-    return '!';
+    return NULL;
   }
 
   if (x instanceof Set) {
-    return 's' + Array.from(x).map(encode).join('') + '.';
+    return SET + Array.from(x).map(encode).join('') + END_SEPARATOR;
   }
 
   if (x instanceof Map) {
-    return 'S' + Array.from(x.entries()).map(encodeKeyValue).join('') + '.';
+    return MAP + Array.from(x.entries()).map(encodeKeyValue).join('') + END_SEPARATOR;
   }
 
   if (x instanceof Date) {
-    return 'Z' + encodeInteger(x.getTime());
+    return DATE + encodeInteger(x.getTime());
   }
 
   if (typeof Buffer !== undefined && x instanceof Buffer) {
-    return 'v' + encodeString(x.toString('base64url'));
+    return BUFFER + encodeString(x.toString('base64url'));
   }
 
   const plugin = x.__urlize || pluginsEncode.find(plugin => plugin.match(x));
 
   if (plugin) {
-    return ')' + [plugin.name, ...plugin.values(x)].map(encode).join('') + '.';
+    return PLUGIN + [plugin.name, ...plugin.values(x)].map(encode).join('') + END_SEPARATOR;
   }
 
-  return '(' + Object.entries(x).map(encodeKeyValue).join('') + '.';
+  return OBJECT + Object.entries(x).map(encodeKeyValue).join('') + END_SEPARATOR;
 }
 
 function encodeInteger(x) {
@@ -166,44 +187,44 @@ function decode(x) {
   const type = x[0];
 
   switch (type) {
-    case '0':
+    case BOOLEAN_FALSE:
       return [false, x.substr(1)];
-    case '1':
+    case BOOLEAN_TRUE:
       return [true, x.substr(1)];
-    case '2':
+    case NAN:
       return [NaN, x.substr(1)];
-    case '3':
+    case NEGATIVE_INFINITY:
       return [-Infinity, x.substr(1)];
-    case '4':
+    case INFINITY:
       return [Infinity, x.substr(1)];
-    case '5':
+    case UNDEFINED:
       return [undefined, x.substr(1)];
-    case '!':
+    case NULL:
       return [null, x.substr(1)];
-    case 'x':
+    case INTEGER_POSITIVE:
       return decodeInteger(x.substr(1));
-    case 'X':
+    case INTEGER_NEGATIVE:
       return decodeInteger(x.substr(1), true);
-    case 'q':
+    case FLOAT_POSITIVE:
       return decodeFloat(x.substr(1));
-    case 'Q':
+    case FLOAT_NEGATIVE:
       return decodeFloat(x.substr(1), true);
-    case '(':
+    case OBJECT:
       return decodeObject(x.substr(1));
-    case '_':
+    case ARRAY:
       return decodeArray(x.substr(1));
-    case 's':
+    case SET:
       return decodeSet(x.substr(1));
-    case 'S':
+    case MAP:
       return decodeMap(x.substr(1));
-    case 'Z':
+    case DATE:
       return decodeDate(x.substr(1));
-    case 'v':
+    case BUFFER:
       if (typeof Buffer !== undefined) {
         return decodeBuffer(x.substr(1));
       }
       throw new Error('Buffer not defined');
-    case ')':
+    case PLUGIN:
       return decodePlugin(x.substr(1));
   }
   if (mapHexDecode[x[0].toLowerCase()] !== undefined) {
@@ -213,7 +234,7 @@ function decode(x) {
 }
 
 function decodeInteger(x, isNegative) {
-  const parsed = x.match(/^([a-p]*[A-P])(.*)/);
+  const parsed = x.match(integerRegexp);
   if (!parsed) {
     throw new Error(`Wrong integer at ${x.substr(0, 10)}...`);
   }
@@ -231,7 +252,7 @@ function decodeInteger(x, isNegative) {
 }
 
 function decodeFloat(x, isNegative) {
-  const parse = x.match(/^([g-p]*[G-P])([g-p]*[G-P])(.*)/);
+  const parse = x.match(floatRegexp);
   if (!parse) {
     throw new Error(`Wrong float at ${x.substr(0, 10)}...`);
   }
@@ -254,7 +275,7 @@ function decodeFloat(x, isNegative) {
 function decodeObject(x) {
   const object = {};
   let items = x;
-  for (; items[0] && items[0] !== '.'; ) {
+  for (; items[0] && items[0] !== END_SEPARATOR; ) {
     const [key, rest1] = decodeString(items);
     const [value, rest2] = decode(rest1);
 
@@ -268,7 +289,7 @@ function decodeObject(x) {
 function decodeArray(x) {
   const array = [];
   let items = x;
-  for (; items[0] && items[0] !== '.'; ) {
+  for (; items[0] && items[0] !== END_SEPARATOR; ) {
     const [value, rest1] = decode(items);
     array.push(value);
     items = rest1;
@@ -279,7 +300,7 @@ function decodeArray(x) {
 function decodeSet(x) {
   const set = new Set();
   let items = x;
-  for (; items[0] && items[0] !== '.'; ) {
+  for (; items[0] && items[0] !== END_SEPARATOR; ) {
     const [value, rest1] = decode(items);
     set.add(value);
     items = rest1;
@@ -290,7 +311,7 @@ function decodeSet(x) {
 function decodeMap(x) {
   const map = new Map();
   let items = x;
-  for (; items[0] && items[0] !== '.'; ) {
+  for (; items[0] && items[0] !== END_SEPARATOR; ) {
     const [key, rest1] = decode(items);
     const [value, rest2] = decode(rest1);
     map.set(key, value);
