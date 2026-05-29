@@ -19,7 +19,7 @@
   set: 's'anyanyany'.'
   map: 'S'anyanyanyanyanyany'.'
   date: 'Z'hex (miliseconds)
-  buffer: 'v'heX string(base64)
+  bytes: 'v'heX string(base64)
   plugin: ')'anyanyany'.' parameters to be passed to the plugin, after deserialized
 */
 
@@ -151,8 +151,8 @@ function encodeObject(x) {
     return DATE + encodeInteger(x.getTime());
   }
 
-  if (typeof Buffer !== undefined && x instanceof Buffer) {
-    return BUFFER + encodeString(x.toString('base64url'));
+  if (x instanceof Uint8Array) {
+    return BUFFER + encodeString(bytesToBase64Url(x));
   }
 
   const plugin = x.__urlize || pluginsEncode.find(plugin => plugin.match(x));
@@ -220,10 +220,7 @@ function decode(x) {
     case DATE:
       return decodeDate(x.substr(1));
     case BUFFER:
-      if (typeof Buffer !== undefined) {
-        return decodeBuffer(x.substr(1));
-      }
-      throw new Error('Buffer not defined');
+      return decodeBuffer(x.substr(1));
     case PLUGIN:
       return decodePlugin(x.substr(1));
   }
@@ -346,7 +343,34 @@ function decodePlugin(x) {
 function decodeBuffer(x) {
   const [base64url, rest] = decodeString(x);
 
-  return [Buffer.from(base64url, 'base64url'), rest];
+  return [base64UrlToBytes(base64url), rest];
+}
+
+function bytesToBase64Url(bytes) {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64url');
+  }
+
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlToBytes(base64url) {
+  if (typeof Buffer !== 'undefined') {
+    return Uint8Array.from(Buffer.from(base64url, 'base64url'));
+  }
+
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }
 
 function main(x) {

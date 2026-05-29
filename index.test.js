@@ -72,8 +72,27 @@ describe('cencode', () => {
       ])
     ).toBe(true));
 
-  it('encodes buffer', () =>
-    expect(doTests([Buffer.from([]), Buffer.from([1, 2, 3, 4, 5, 6])])).toBe(true));
+  it('encodes Uint8Array', () =>
+    expect(doTests([new Uint8Array(), new Uint8Array([1, 2, 3, 4, 5, 6])])).toBe(true));
+
+  it('encodes Buffer as Uint8Array in node', () => {
+    const encoded = cencode(Buffer.from([1, 2, 3, 4, 5, 6]));
+    const decoded = decencode(encoded);
+
+    expect(decoded).toEqual(new Uint8Array([1, 2, 3, 4, 5, 6]));
+    expect(decoded).not.toBeInstanceOf(Buffer);
+  });
+
+  it('encodes Uint8Array without Buffer', () => {
+    const originalBuffer = globalThis.Buffer;
+    globalThis.Buffer = undefined;
+
+    try {
+      expect(doTests([new Uint8Array([1, 2, 3, 4, 5, 6])])).toBe(true);
+    } finally {
+      globalThis.Buffer = originalBuffer;
+    }
+  });
 
   it('uses plugins', () => {
     expect(pluginsDecode).not.toBeUndefined();
